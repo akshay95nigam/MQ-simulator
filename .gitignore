@@ -1,0 +1,7 @@
+node_modules/
+npm-debug.log*
+
+# Saved queue configs can hold connection passwords, and history
+# can hold simulated payment payloads — don't commit either.
+data/*.json
+!data/.gitkeep

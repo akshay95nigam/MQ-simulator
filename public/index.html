@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MQ Payment Simulator</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">MQ</span>
+        <div>
+          <h1>Payment Simulator</h1>
+          <p class="subtitle">Simulate client payment messages over IBM&nbsp;MQ</p>
+        </div>
+      </div>
+      <div id="mq-status" class="status-pill status-unknown">Checking MQ client…</div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Saved Queues</h2>
+            <button class="btn-icon" id="new-queue-btn" title="Add queue">+</button>
+          </div>
+          <div id="queue-list" class="item-list"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Saved Messages</h2>
+            <button class="btn-icon" id="new-message-btn" title="Add message">+</button>
+          </div>
+          <div id="message-list" class="item-list"></div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <section class="panel compose-panel">
+          <div class="panel-header">
+            <h2>Compose &amp; Send</h2>
+          </div>
+
+          <div class="form-grid">
+            <label class="field">
+              <span>Target queue</span>
+              <select id="compose-queue"></select>
+            </label>
+            <label class="field">
+              <span>Message template</span>
+              <select id="compose-message">
+                <option value="">— Ad-hoc message —</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="field">
+            <span>Message body</span>
+            <textarea id="compose-body" rows="10" placeholder="Type or pick a saved message. Use {{variable}} placeholders for values that change per send."></textarea>
+          </label>
+
+          <div id="variables-block" class="field hidden">
+            <span>Template variables</span>
+            <div id="variables-list" class="variables-list"></div>
+          </div>
+
+          <div class="compose-footer">
+            <label class="checkbox">
+              <input type="checkbox" id="dry-run-toggle" checked />
+              Dry run (don't actually connect to MQ)
+            </label>
+            <button id="send-btn" class="btn-primary">Send message</button>
+          </div>
+          <div id="send-result" class="send-result"></div>
+        </section>
+
+        <section class="panel history-panel">
+          <div class="panel-header">
+            <h2>Send history</h2>
+            <button class="btn-text" id="refresh-history-btn">Refresh</button>
+          </div>
+          <div id="history-list" class="history-list"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="modal-backdrop" class="modal-backdrop hidden">
+    <div id="modal" class="modal"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
