@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Service Health</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="health.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">MQ</span>
+        <div>
+          <h1>Service Health</h1>
+          <p class="subtitle">Spring Boot payment services on OpenShift</p>
+        </div>
+      </div>
+      <nav class="topnav">
+        <a href="index.html">Simulator</a>
+        <a href="health.html" class="active">Service health</a>
+      </nav>
+      <div id="overall-status" class="status-pill status-unknown">Loading…</div>
+    </header>
+
+    <div class="health-page">
+      <section class="toolbar panel">
+        <div class="toolbar-filters">
+          <label class="field compact"><span>Environment</span><select id="filter-env"></select></label>
+          <label class="field compact"><span>Namespace</span><select id="filter-ns"></select></label>
+          <label class="field compact"><span>Status</span>
+            <select id="filter-status">
+              <option value="">All</option>
+              <option value="problems">Problems only</option>
+              <option value="down">Down</option>
+              <option value="degraded">Degraded</option>
+              <option value="up">Up</option>
+            </select>
+          </label>
+          <label class="field compact grow"><span>Search</span><input type="text" id="filter-search" placeholder="Service name…" /></label>
+        </div>
+        <div class="toolbar-actions">
+          <span id="last-poll" class="muted small"></span>
+          <button class="btn-secondary" id="check-now-btn">Check now</button>
+          <button class="btn-primary" id="add-service-btn">Add service</button>
+        </div>
+      </section>
+
+      <section class="kpis" id="kpis"></section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Message pipeline</h2>
+          <span class="muted small">Worst status per stage, in message-flow order</span>
+        </div>
+        <div id="pipeline" class="pipeline"></div>
+      </section>
+
+      <div class="health-layout">
+        <main id="service-groups" class="service-groups"></main>
+        <aside class="panel events-panel">
+          <div class="panel-header"><h2>Status changes</h2></div>
+          <div id="events" class="events-list"></div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-backdrop" class="modal-backdrop hidden">
+    <div id="modal" class="modal"></div>
+  </div>
+
+  <datalist id="stage-options">
+    <option value="Intake"></option>
+    <option value="Validation"></option>
+    <option value="Transformation"></option>
+    <option value="Enrichment"></option>
+    <option value="Routing"></option>
+    <option value="Delivery"></option>
+    <option value="Acknowledgement"></option>
+  </datalist>
+
+  <script src="health.js"></script>
+</body>
+</html>

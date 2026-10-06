@@ -4,6 +4,8 @@ const path = require('path');
 const express = require('express');
 const store = require('./store');
 const mqClient = require('./mqClient');
+const health = require('./health');
+const { demoRouter, demoServiceRecords } = require('./demoActuator');
 
 const app = express();
 const PORT = process.env.PORT || 4173;
@@ -141,6 +143,76 @@ app.post(
   })
 );
 
+// ---------- Service health dashboard ----------
+app.get('/api/services', (req, res) => {
+  res.json(store.list(health.COLLECTION).map(health.sanitize));
+});
+
+app.post('/api/services', (req, res) => {
+  const record = health.normalizeInput(req.body || {});
+  const error = health.validate(record);
+  if (error) return res.status(400).json({ error });
+  const created = store.create(health.COLLECTION, record);
+  health.checkOne(created.id).catch(() => {});
+  res.status(201).json(health.sanitize(created));
+});
+
+app.put('/api/services/:id', (req, res) => {
+  const existing = store.get(health.COLLECTION, req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Not found' });
+  const record = health.normalizeInput(req.body || {}, existing);
+  const error = health.validate(record);
+  if (error) return res.status(400).json({ error });
+  const updated = store.update(health.COLLECTION, req.params.id, record);
+  health.forget(updated.id);
+  health.checkOne(updated.id).catch(() => {});
+  res.json(health.sanitize(updated));
+});
+
+app.delete('/api/services/:id', (req, res) => {
+  const ok = store.remove(health.COLLECTION, req.params.id);
+  if (!ok) return res.status(404).json({ error: 'Not found' });
+  health.forget(req.params.id);
+  res.status(204).end();
+});
+
+// Adds the sample payment pipeline served by /demo below.
+app.post(
+  '/api/services/demo',
+  asyncHandler(async (req, res) => {
+    const existing = new Set(store.list(health.COLLECTION).map((s) => s.baseUrl));
+    const baseUrl = `http://localhost:${PORT}`;
+    const added = demoServiceRecords(baseUrl)
+      .filter((r) => !existing.has(r.baseUrl))
+      .map((r) => store.create(health.COLLECTION, r));
+    await health.checkAll();
+    res.status(201).json({ added: added.length });
+  })
+);
+
+app.get('/api/health', (req, res) => {
+  res.json(health.snapshot());
+});
+
+app.post(
+  '/api/health/check',
+  asyncHandler(async (req, res) => {
+    await health.checkAll();
+    res.json(health.snapshot());
+  })
+);
+
+app.post(
+  '/api/health/check/:id',
+  asyncHandler(async (req, res) => {
+    const result = await health.checkOne(req.params.id);
+    if (!result) return res.status(404).json({ error: 'Not found' });
+    res.json(result);
+  })
+);
+
+app.use('/demo', demoRouter());
+
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ error: err.message || 'Internal server error' });
@@ -148,6 +220,8 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`MQ Payment Simulator running at http://localhost:${PORT}`);
+  console.log(`Service health dashboard at http://localhost:${PORT}/health.html`);
+  health.start();
   if (!mqClient.isAvailable()) {
     console.log('Note: real MQ sends are unavailable until the "ibmmq" native module is set up. Dry Run mode still works.');
   }
