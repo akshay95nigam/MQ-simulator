@@ -198,15 +198,16 @@ function renderGroups(entries) {
     container.innerHTML = `
       <div class="panel empty-state">
         <h3>No services yet</h3>
-        <p>Add each Spring Boot service by its OpenShift route (or in-cluster service URL). The dashboard polls
+        <p>Add each Spring Boot service by its OpenShift route (or in-cluster service URL), or declare them under
+        <code>dashboard.services</code> in the dashboard's ConfigMap. The dashboard polls
         <code>/actuator/health</code>, the liveness/readiness probe groups, and <code>/actuator/info</code>.</p>
         <div class="actions">
           <button class="btn-primary" id="empty-add">Add service</button>
-          <button class="btn-secondary" id="empty-demo">Load demo pipeline</button>
+          ${state.snapshot.demoAvailable ? '<button class="btn-secondary" id="empty-demo">Load demo pipeline</button>' : ''}
         </div>
       </div>`;
     el('empty-add').addEventListener('click', () => openServiceModal(null));
-    el('empty-demo').addEventListener('click', loadDemo);
+    if (el('empty-demo')) el('empty-demo').addEventListener('click', loadDemo);
     return;
   }
   if (!entries.length) {
@@ -311,7 +312,11 @@ async function checkNow() {
 }
 
 async function loadDemo() {
-  await api('/api/services/demo', { method: 'POST' });
+  try {
+    await api('/api/services/demo', { method: 'POST' });
+  } catch (err) {
+    alert(`Could not load demo services: ${err.message}`);
+  }
   await load();
 }
 
@@ -346,6 +351,7 @@ function openDetailModal(id) {
   ];
   if (s.consoleUrl) rows.push(['OpenShift', `<a href="${attr(s.consoleUrl)}" target="_blank" rel="noopener">Open in console ↗</a>`]);
   if (s.description) rows.push(['Notes', escapeHtml(s.description)]);
+  if (s.configManaged) rows.push(['Defined in', 'Dashboard configuration (<code>dashboard.services</code>) — edit the ConfigMap to change it']);
 
   const issues = h ? [h.error, ...(h.reasons || [])].filter(Boolean) : [];
   const components = (h && h.components) || [];
@@ -368,13 +374,13 @@ function openDetailModal(id) {
       </tr>`).join('')}</tbody></table>`
     : '<p class="muted small">No component breakdown. Set <code>management.endpoint.health.show-components=always</code> (or <code>show-details</code>) on the service to see db, jms, diskSpace etc.</p>'}
     <div class="modal-footer">
-      <button class="btn-secondary" id="d-edit">Edit</button>
+      ${s.configManaged ? '' : '<button class="btn-secondary" id="d-edit">Edit</button>'}
       <button class="btn-secondary" id="d-recheck">Re-check</button>
       <button class="btn-primary" id="d-close">Close</button>
     </div>`;
   el('modal-backdrop').classList.remove('hidden');
   el('d-close').addEventListener('click', closeModal);
-  el('d-edit').addEventListener('click', () => openServiceModal(s));
+  if (!s.configManaged) el('d-edit').addEventListener('click', () => openServiceModal(s));
   el('d-recheck').addEventListener('click', async () => {
     el('d-recheck').disabled = true;
     el('d-recheck').textContent = 'Checking…';

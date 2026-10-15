@@ -1,0 +1,58 @@
+# The services to monitor. Mounted as /config/application.yaml and layered on
+# top of the defaults in src/main/resources/application.yaml.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-health-dashboard-config
+  labels:
+    app: payment-health-dashboard
+data:
+  application.yaml: |
+    dashboard:
+      poll-interval: 15s
+      timeout: 5s
+      store-file: /deployments/data/services.json
+      demo:
+        enabled: false
+      # Trust the OpenShift service CA for https:// calls to *.svc addresses.
+      ssl-bundle: cluster-ca
+      services:
+        # In-cluster service URLs are preferred: no route needed, and the
+        # actuator/management port doesn't have to be exposed outside the cluster.
+        - name: mq-inbound-listener
+          stage: Intake
+          environment: prod
+          namespace: payments-prod
+          base-url: http://mq-inbound-listener.payments-prod.svc:8081
+        - name: payment-transformer
+          stage: Transformation
+          environment: prod
+          namespace: payments-prod
+          base-url: http://payment-transformer.payments-prod.svc:8081
+          console-url: https://console-openshift-console.apps.CLUSTER.example.com/k8s/ns/payments-prod/deployments/payment-transformer
+        - name: client-delivery-service
+          stage: Delivery
+          environment: prod
+          namespace: payments-prod
+          base-url: http://client-delivery-service.payments-prod.svc:8081
+          # Only needed if actuator is secured; the value comes from the Secret.
+          auth-token: ${CLIENT_DELIVERY_ACTUATOR_TOKEN:}
+
+    spring:
+      ssl:
+        bundle:
+          pem:
+            cluster-ca:
+              truststore:
+                certificate: file:/etc/pki/service-ca/service-ca.crt
+---
+# OpenShift fills in service-ca.crt (the CA that signs service serving certs).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-health-dashboard-service-ca
+  labels:
+    app: payment-health-dashboard
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"
+data: {}

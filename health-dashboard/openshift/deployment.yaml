@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-health-dashboard
+  labels:
+    app: payment-health-dashboard
+spec:
+  # One replica: check history and status-change events are held in memory.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-health-dashboard
+  template:
+    metadata:
+      labels:
+        app: payment-health-dashboard
+    spec:
+      containers:
+        - name: dashboard
+          image: payment-health-dashboard
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SPRING_CONFIG_ADDITIONAL_LOCATION
+              value: optional:file:/config/
+          envFrom:
+            - secretRef:
+                name: payment-health-dashboard-tokens
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 20
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 24
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: service-ca
+              mountPath: /etc/pki/service-ca
+              readOnly: true
+            - name: data
+              mountPath: /deployments/data
+      volumes:
+        - name: config
+          configMap:
+            name: payment-health-dashboard-config
+        - name: service-ca
+          configMap:
+            name: payment-health-dashboard-service-ca
+        # Services added through the UI live here. emptyDir is lost when the
+        # pod is replaced — swap in a PersistentVolumeClaim to keep them, or
+        # declare services in the ConfigMap instead.
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-health-dashboard
+  labels:
+    app: payment-health-dashboard
+spec:
+  selector:
+    app: payment-health-dashboard
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: payment-health-dashboard
+  labels:
+    app: payment-health-dashboard
+spec:
+  to:
+    kind: Service
+    name: payment-health-dashboard
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

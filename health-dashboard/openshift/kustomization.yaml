@@ -1,0 +1,11 @@
+# oc apply -k openshift/   (set the namespace and image below first)
+namespace: payments-monitoring
+resources:
+  - configmap.yaml
+  - secret.yaml
+  - deployment.yaml
+  - monitoring.yaml
+images:
+  - name: payment-health-dashboard
+    newName: image-registry.openshift-image-registry.svc:5000/payments-monitoring/payment-health-dashboard
+    newTag: latest

@@ -1,0 +1,3 @@
+target/
+# Services added through the UI can hold bearer tokens — don't commit them.
+data/

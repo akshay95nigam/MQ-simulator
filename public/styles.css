@@ -61,18 +61,6 @@ body {
   border: 1px solid rgba(255,255,255,0.3);
 }
 .status-ok { background: rgba(18,128,92,0.25); }
-
-.topnav { display: flex; gap: 4px; margin-left: auto; margin-right: 16px; }
-.topnav a {
-  color: rgba(255,255,255,0.8);
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 7px;
-}
-.topnav a:hover { background: rgba(255,255,255,0.1); color: white; }
-.topnav a.active { background: rgba(255,255,255,0.18); color: white; }
 .status-warn { background: rgba(163,98,11,0.3); }
 
 .layout {

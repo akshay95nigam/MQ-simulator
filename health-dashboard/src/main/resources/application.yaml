@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: payment-health-dashboard
+  threads:
+    virtual:
+      enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+server:
+  port: 8080
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-components: always
+  info:
+    build:
+      enabled: true
+    java:
+      enabled: true
+
+dashboard:
+  poll-interval: 15s
+  timeout: 5s
+  history-length: 60
+  store-file: data/services.json
+  # Name of a spring.ssl.bundle.* entry holding your cluster/ingress CA (see README).
+  ssl-bundle: ""
+  demo:
+    enabled: true
+  # Services can also be declared here (or in an OpenShift ConfigMap) — they
+  # show in the dashboard as read-only. Example:
+  # services:
+  #   - name: payment-transformer
+  #     stage: Transformation
+  #     environment: prod
+  #     namespace: payments-prod
+  #     base-url: http://payment-transformer.payments-prod.svc:8081
+  #     auth-token: ${PAYMENT_TRANSFORMER_TOKEN:}
+  services: []

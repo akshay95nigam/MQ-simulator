@@ -1,0 +1,49 @@
+# Requires user-workload monitoring to be enabled on the cluster.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: payment-health-dashboard
+  labels:
+    app: payment-health-dashboard
+spec:
+  selector:
+    matchLabels:
+      app: payment-health-dashboard
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 30s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: payment-health-dashboard
+  labels:
+    app: payment-health-dashboard
+spec:
+  groups:
+    - name: payment-services
+      rules:
+        - alert: PaymentServiceDown
+          expr: payment_service_up == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ $labels.service }} ({{ $labels.namespace }}) is down"
+            description: "The {{ $labels.stage }} stage service {{ $labels.service }} has failed its actuator health check for 2 minutes."
+        - alert: PaymentServiceDegraded
+          expr: payment_service_degraded == 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.service }} ({{ $labels.namespace }}) is degraded"
+            description: "{{ $labels.service }} is UP but slow, or a component/probe has not been UP for 10 minutes. See the health dashboard for details."
+        - alert: PaymentHealthDashboardNotScraping
+          expr: absent(payment_service_up)
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "The payment health dashboard is not reporting any service status"
